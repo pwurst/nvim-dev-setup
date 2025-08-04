@@ -1,105 +1,78 @@
--- lua/opts.lua --------------------------------------------------------------
--- Core editor options for Neovim 0.11+ (Lua table API)
--- Patrick Wurster · revised 2025‑07‑16
+-- ~/.config/nvim/lua/opts.lua ----------------------------------------------
+-- Core editor options (Neovim 0.11+)
+-- Patrick Wurster · revised 2025-08-04
 
-local o = vim.opt  -- shorthand
+local o = vim.opt
 
------------------------------------------------------------------------------
--- 1️⃣  Basic UI -------------------------------------------------------------
------------------------------------------------------------------------------
-o.number         = true   -- absolute line numbers
-o.relativenumber = true   -- relative numbers for motions
-o.signcolumn     = "yes"  -- keep gutter visible
-o.cursorline     = true   -- highlight current line
+-- 1. Basic UI ---------------------------------------------------------------
+o.number         = true
+o.relativenumber = true
+o.signcolumn     = "yes"
+o.cursorline     = true
 
------------------------------------------------------------------------------
--- 2️⃣  UI enhancements ------------------------------------------------------
------------------------------------------------------------------------------
-o.scrolloff      = 8      -- keep 8 lines above/below cursor
-o.sidescrolloff  = 8      -- keep 8 columns to left/right
+-- 2. UI enhancements --------------------------------------------------------
+o.scrolloff      = 8
+o.sidescrolloff  = 8
+o.wrap           = false         -- global off (Markdown autocmd adds local)
+o.list           = true
+o.listchars      = { tab = "»·", trail = "·", extends = "›", precedes = "‹" }
 
-o.wrap           = false  -- disable soft wrapping
+-- 3. Indentation ------------------------------------------------------------
+o.expandtab      = true
+o.shiftwidth     = 2
+o.tabstop        = 2
+o.softtabstop    = 2
+o.smartindent    = true
 
-o.list           = true   -- show whitespace characters
-o.listchars      = {
-  tab      = "»·",  -- xxx··  (visible tab)
-  trail    = "·",   -- trailing space
-  extends  = "›",   -- line extends right
-  precedes = "‹",   -- line extends left
-}
+-- 4. Search -----------------------------------------------------------------
+o.incsearch      = true
+o.hlsearch       = false
+o.ignorecase     = true
+o.smartcase      = true
 
------------------------------------------------------------------------------
--- 3️⃣  Editing / indentation ----------------------------------------------
------------------------------------------------------------------------------
-o.expandtab     = true  -- use spaces for <Tab>
-o.shiftwidth    = 2     -- size for indents with << and >>
-o.tabstop       = 2     -- visual width of a real tab
-o.softtabstop   = 2     -- spaces inserted/deleted with <Tab>/<BS>
-o.smartindent   = true  -- auto‑indent on new line
+-- 5. Completion / cmd-line --------------------------------------------------
+o.cmdheight      = 1
+o.pumheight      = 10
+o.completeopt    = { "menu", "menuone", "noselect" }
 
------------------------------------------------------------------------------
--- 4️⃣  Search ---------------------------------------------------------------
------------------------------------------------------------------------------
-o.incsearch     = true  -- incremental search
-o.hlsearch      = false -- turn off persistent highlighting
+-- 6. Performance ------------------------------------------------------------
+o.updatetime     = 300
+o.timeoutlen     = 500
+o.mouse          = "a"
 
-o.ignorecase    = true  -- case‑insensitive unless...
-o.smartcase     = true  -- ...pattern contains upper‑case
+-- 7. Files ------------------------------------------------------------------
+o.swapfile       = false
+o.backup         = false
+o.undofile       = true
 
------------------------------------------------------------------------------
--- 5️⃣  Command‑line / completion -------------------------------------------
------------------------------------------------------------------------------
-o.cmdheight     = 1     -- one‑line command bar
-o.pumheight     = 10    -- pop‑up menu height
-
--- nvim‑cmp recommendation
-o.completeopt   = { "menu", "menuone", "noselect" }
-
------------------------------------------------------------------------------
--- 6️⃣  Performance / sensitivity -------------------------------------------
------------------------------------------------------------------------------
-o.updatetime    = 300   -- CursorHold delay (ms)
-o.timeoutlen    = 500   -- mapped key sequence timeout
-
-o.mouse         = "a"   -- enable mouse everywhere
-o.clipboard     = "unnamedplus"  -- use system clipboard
-
------------------------------------------------------------------------------
--- 7️⃣  File handling / undo -------------------------------------------------
------------------------------------------------------------------------------
-o.swapfile      = false -- no .swp files
-o.backup        = false -- no backups
-o.undofile      = true  -- persistent undo
-
------------------------------------------------------------------------------
--- 8️⃣  Folding behaviour ----------------------------------------------------
------------------------------------------------------------------------------
--- Use Treesitter/indent/ufo/etc. during initial render, then switch to
--- manual so folds don't collapse on every InsertLeave (Esc).
-
--- reasonable defaults
-o.foldenable     = true   -- keep folds enabled
-o.foldmethod     = "indent"  -- or "expr" if ufo sets up Treesitter
-o.foldlevel      = 99     -- open most folds by default
+-- 8. Folding ----------------------------------------------------------------
+o.foldenable     = true
+o.foldmethod     = "indent"
+o.foldlevel      = 99
 o.foldlevelstart = 99
 
--- Freeze foldmethod after opening
 vim.api.nvim_create_autocmd("BufReadPost", {
-  callback = function()
-    vim.schedule(function()
-      vim.wo.foldmethod = "manual"
-    end)
+  callback = function(args)
+  vim.schedule(function() vim.wo[args.buf].foldmethod = "manual" end)
   end,
 })
 
--- Optional: manual re‑compute helper (mapped in keymaps.lua)
---   <leader>uf  : update folds once, then freeze again
 vim.api.nvim_create_user_command("UpdateFolds", function()
-  local method = "indent"  -- change if you use expr/Treesitter
-  vim.wo.foldmethod = method
-  vim.cmd("normal! zx")    -- recompute folds
-  vim.wo.foldmethod = "manual"
+vim.wo.foldmethod = "indent"
+vim.cmd("normal! zx")
+vim.wo.foldmethod = "manual"
 end, { desc = "Recompute & freeze folds" })
 
--- end opts.lua -------------------------------------------------------------
-
+-- ── Auto-wrap for Markdown & TeX ───────────────────────────────────────────
+vim.api.nvim_create_autocmd("FileType", {
+  group   = vim.api.nvim_create_augroup("WrapOnMarkdownTeX", { clear = true }),
+                            pattern = { "markdown", "tex", "plaintex", "latex" },
+                            callback = function()
+                            vim.opt_local.textwidth = 80
+                            local fo = vim.opt_local.formatoptions
+                            fo:remove({ "o" })
+                            fo:append({ "t", "c", "q", "j", "n" })
+                            vim.opt_local.wrap      = true
+                            vim.opt_local.linebreak = true
+                            end,
+})

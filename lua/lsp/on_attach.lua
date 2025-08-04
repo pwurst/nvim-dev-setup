@@ -1,15 +1,22 @@
--- ~/.config/nvim/lua/lsp/on_attach.lua
 local M = {}
 
-function M.on_attach(client, bufnr)
-  local bufmap = function(mode, lhs, rhs)
-    vim.api.nvim_buf_set_keymap(bufnr, mode, lhs, rhs, { noremap = true, silent = true })
-  end
+function M.on_attach(_, bufnr)
+local opts = { buffer = bufnr, silent = true }
 
-  bufmap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>')
-  bufmap('n', 'K',  '<cmd>lua vim.lsp.buf.hover()<CR>')
-  -- add your other keymaps…
+-- Navigation -----------------------------------------------------------
+vim.keymap.set("n", "gd", vim.lsp.buf.definition,  opts)
+vim.keymap.set("n", "gr", vim.lsp.buf.references,  opts)
+vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+vim.keymap.set("n", "K",  vim.lsp.buf.hover,       opts)
+
+-- Code actions / refactor ---------------------------------------------
+vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename,       opts)
+
+-- Formatting (falls back to Conform’s :Format) -------------------------
+vim.keymap.set("n", "<leader>f", function()
+vim.lsp.buf.format({ async = true })
+end, opts)
 end
 
 return M
-

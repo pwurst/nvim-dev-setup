@@ -1,10 +1,3 @@
-## Python virtual‑environment
-
-## Installing Neovim ≥ 0.11  — two common approaches
-
-Below are copy‑paste recipes you can drop into the **Installation** section
-of your README.  Pick one depending on whether you have `sudo` rights.
-
 ---
 
 ### Install nvim — **No sudo** (user‑local build)
@@ -32,6 +25,7 @@ source ~/.bashrc
 # 4 | Verify ───────────────────────────────────────────────────────────────
 nvim --version    # should show v0.11.x-dev and "Compiled by <user>"
 
+## Python virtual‑environment
 #### Plugins ####
 Molten, nvim‑dap‑python, Ruff‑LSP, and Neovim’s own “remote plugin”
 interface all run through the **same** interpreter referenced by
