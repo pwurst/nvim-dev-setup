@@ -161,6 +161,18 @@ return require("lazy").setup({
     end,
   },
 
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch       = "v3.x",
+    dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim" },
+    cmd          = "Neotree",                     -- lazy-load on :Neotree
+    keys         = { { "<Leader>e", "<Cmd>Neotree toggle<CR>",
+                       desc = "File tree" } },
+    config       = function()                     -- run after plugin loads
+      require("plugins.neotree")                  -- <-- your mappings file
+    end,
+  },
+
   -------------------------------------------------------------------------
   -- 5. Editing niceties ----------------------------------------------------
   -------------------------------------------------------------------------

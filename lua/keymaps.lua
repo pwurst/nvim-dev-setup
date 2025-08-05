@@ -42,5 +42,20 @@ if ok then
   map("n", "<leader>dl", dap.run_last, opts)
 end
 
+
+local map, opts = vim.keymap.set, { noremap = true, silent = true }
+local harpoon   = require("harpoon")
+
+-- add current file
+map("n", "<Space>a", function() harpoon:list():append() end, opts)
+
+-- quick menu
+map("n", "<Space>h", function() harpoon.ui:toggle_quick_menu() end, opts)
+
+-- fast navigation slots
+for i = 1, 4 do
+  map("n", ("<Space>%d"):format(i), function() harpoon:list():select(i) end, opts)
+end
+
 ---------------------------------------------------------------------------
 -- EOF ---------------------------------------------------------------------

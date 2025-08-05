@@ -53,7 +53,10 @@ o.foldlevelstart = 99
 
 vim.api.nvim_create_autocmd("BufReadPost", {
   callback = function(args)
-  vim.schedule(function() vim.wo[args.buf].foldmethod = "manual" end)
+    -- for every window displaying this buffer …
+    for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do
+      vim.api.nvim_win_set_option(win, "foldmethod", "manual")
+    end
   end,
 })
 
@@ -68,11 +71,17 @@ vim.api.nvim_create_autocmd("FileType", {
   group   = vim.api.nvim_create_augroup("WrapOnMarkdownTeX", { clear = true }),
                             pattern = { "markdown", "tex", "plaintex", "latex" },
                             callback = function()
-                            vim.opt_local.textwidth = 80
+                            -- wrap at 80 characters
+                            vim.opt_local.textwidth  = 80
+
+                            -- adjust formatoptions: remove automatic 'o', add only valid flags
                             local fo = vim.opt_local.formatoptions
                             fo:remove({ "o" })
-                            fo:append({ "t", "c", "q", "j", "n" })
+                            fo:append("tcqjn")
+
+                            -- enable visual wrapping and break on word boundaries
                             vim.opt_local.wrap      = true
                             vim.opt_local.linebreak = true
                             end,
 })
+
