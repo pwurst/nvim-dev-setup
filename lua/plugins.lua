@@ -21,6 +21,13 @@ return require("lazy").setup({
     config  = function() require("mini.icons").setup() end,
   },
 
+  {
+  "folke/tokyonight.nvim",
+  lazy = false,                      -- load immediately on startup
+  priority = 1000,                   -- so it loads before everything else
+  opts = { style = "moon" },         -- ← variant
+},
+
   -------------------------------------------------------------------------
   -- 1. UI enhancements ----------------------------------------------------
   -------------------------------------------------------------------------
@@ -130,7 +137,10 @@ return require("lazy").setup({
   -- none-ls (diagnostics & formatting) -------------------------------------
   {
     "nvimtools/none-ls.nvim",
-    dependencies = "nvim-lua/plenary.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvimtools/none-ls-extras.nvim",
+    },
     event = { "BufReadPre", "BufNewFile" },
     opts = function()
       local nls = require("null-ls")

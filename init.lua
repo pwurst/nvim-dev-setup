@@ -13,8 +13,10 @@ vim.g.maplocalleader = ","
 -- 1️⃣  Core Vim options ------------------------------------------------------
 ------------------------------------------------------------------------------
 require("opts") -- all `vim.opt` tweaks
-
 vim.g.python3_host_prog = vim.fn.expand("~/.config/nvim/.pyenvs/nvim/bin/python3")
+
+
+
 
 -- disable unused providers
 vim.g.loaded_node_provider = 0
@@ -43,6 +45,14 @@ vim.opt.clipboard:append("unnamedplus")
 -- 3️⃣  Plugins ---------------------------------------------------------------
 ------------------------------------------------------------------------------
 require("plugins")
+
+-- python syntax highlighting
+-- 1.  Tell Tokyonight which variant you want  (before :colorscheme)
+vim.g.tokyonight_style = "moon"            -- or use the opts table in the spec
+-- 2.  Load the *base* scheme (name is just "tokyonight")
+pcall(vim.cmd.colorscheme, "tokyonight")
+-- 3.  Apply your per-Python tweaks so they override the theme’s defaults
+pcall(require, "highlight.python")
 
 -- Harpoon v2 legacy‐cache purge (avoids json_encode crash once per boot)
 pcall(function()
