@@ -1,61 +1,117 @@
--- ~/.config/nvim/lua/keymaps.lua -------------------------------------------
--- All custom key-bindings
--- Patrick Wurster · patched 2025-08-04
+-- lua/core/keymaps.lua
+local map, del = vim.keymap.set, vim.keymap.del
 
-local map  = vim.keymap.set
-local opts = { noremap = true, silent = true }
-
----------------------------------------------------------------------------
--- 1. General / UI ---------------------------------------------------------
----------------------------------------------------------------------------
-map("n", "<leader>qq", "<Cmd>qa!<CR>", opts)                  -- quit all
-map("n", "<leader>w", "<Cmd>w<CR>", opts)                     -- quick save
-map("n", "<leader>e", "<Cmd>Neotree toggle<CR>", opts)        -- file explorer
-map("n", "<leader>f", "<Cmd>Telescope find_files<CR>", opts)  -- fuzzy files
--- add your usual motions…
-
----------------------------------------------------------------------------
--- 2. LSP helpers ----------------------------------------------------------
----------------------------------------------------------------------------
-map("n", "gd", vim.lsp.buf.definition, opts)
-map("n", "gr", vim.lsp.buf.references, opts)
-map("n", "K", vim.lsp.buf.hover, opts)
-map("n", "<leader>ca", vim.lsp.buf.code_action, opts)
-map("n", "<leader>rn", vim.lsp.buf.rename, opts)
-map("n", "<leader>cf", function() vim.lsp.buf.format({ async = true }) end,
-  vim.tbl_extend("force", opts, { desc = "Format buffer" }))
-
----------------------------------------------------------------------------
--- 3. Debug Adapter Protocol (safe load) ----------------------------------
----------------------------------------------------------------------------
-local ok, dap = pcall(require, "dap")
-if ok then
-  map("n", "<F5>", dap.continue, opts)
-  map("n", "<F10>", dap.step_over, opts)
-  map("n", "<F11>", dap.step_into, opts)
-  map("n", "<F12>", dap.step_out, opts)
-  map("n", "<leader>b", dap.toggle_breakpoint, opts)
-  map("n", "<leader>B",
-    function() dap.set_breakpoint(vim.fn.input("Condition > ")) end,
-    opts)
-  map("n", "<leader>dr", dap.repl.open, opts)
-  map("n", "<leader>dl", dap.run_last, opts)
+-- robust delete: remove if present (global or buffer-local)
+local function sdel(modes, lhs, opts)
+  opts = opts or {}
+  local ms = type(modes) == "table" and modes or { modes }
+  for _, m in ipairs(ms) do
+    pcall(del, m, lhs, opts)
+  end
 end
 
-
-local map, opts = vim.keymap.set, { noremap = true, silent = true }
-local harpoon   = require("harpoon")
-
--- add current file
-map("n", "<Space>a", function() harpoon:list():append() end, opts)
-
--- quick menu
-map("n", "<Space>h", function() harpoon.ui:toggle_quick_menu() end, opts)
-
--- fast navigation slots
-for i = 1, 4 do
-  map("n", ("<Space>%d"):format(i), function() harpoon:list():select(i) end, opts)
+-- nuke known conflicting prefixes and their variants
+local function nuke_conflicts(bufnr)
+  local bo = bufnr and { buffer = bufnr } or nil
+  -- Comment.nvim defaults
+  for _, lhs in ipairs({ "gc", "gb", "gcc", "gco", "gcO", "gcA" }) do
+    sdel({ "n", "x", "o" }, lhs, bo)
+  end
+  -- LSP-style 'gr*' groups
+  for _, lhs in ipairs({ "gr", "grr", "grt", "gra", "gri", "grn" }) do
+    sdel("n", lhs, bo)
+  end
+  -- leader prefix that collides with <leader>ff / <leader>fg
+  sdel({ "n", "x" }, "<leader>f", bo)
 end
 
----------------------------------------------------------------------------
--- EOF ---------------------------------------------------------------------
+-- also scrub any maps returned by API that match our list (belt & suspenders)
+local function deep_scrub()
+  local targets = {
+    n = { "gc", "gb", "gcc", "gco", "gcO", "gcA", "gr", "grr", "grt", "gra", "gri", "grn", "<leader>f" },
+    x = { "gc", "gb", "<leader>f" },
+    o = { "gc", "gb" },
+  }
+  for mode, lhss in pairs(targets) do
+    local maps = vim.api.nvim_get_keymap(mode)
+    for _, lhs in ipairs(lhss) do
+      for _, m in ipairs(maps) do
+        if m.lhs == lhs then pcall(vim.keymap.del, mode, lhs) end
+      end
+    end
+  end
+end
+
+-- run early and after plugins (VeryLazy), and on buffer/LSP events
+nuke_conflicts()
+vim.api.nvim_create_autocmd("User", { pattern = "VeryLazy", callback = function()
+  nuke_conflicts()
+  deep_scrub()
+end })
+
+vim.api.nvim_create_autocmd({ "BufEnter" }, { callback = function()
+  nuke_conflicts()
+end })
+
+vim.api.nvim_create_autocmd("LspAttach", { callback = function(args)
+  nuke_conflicts(args.buf)
+end })
+
+-- ── your preferred mappings (conflict-free) ───────────────────────────────────
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
+
+-- Comment toggles on <leader>c* (requires Comment.nvim)
+do
+  local ok, C = pcall(require, "Comment.api")
+  if ok then
+    map("n", "<leader>cl", function() C.toggle.linewise.current() end, { desc = "Comment: toggle line" })
+    map("x", "<leader>cl", function() C.toggle.linewise(vim.fn.visualmode()) end, { desc = "Comment: toggle lines" })
+
+    map("n", "<leader>cb", function() C.toggle.blockwise.current() end, { desc = "Comment: toggle block" })
+    map("x", "<leader>cb", function() C.toggle.blockwise(vim.fn.visualmode()) end, { desc = "Comment: toggle block sel" })
+
+    map("n", "<leader>cA", function() C.insert.linewise.eol() end,   { desc = "Comment: at EOL" })
+    map("n", "<leader>co", function() C.insert.linewise.below() end, { desc = "Comment: line below" })
+    map("n", "<leader>cO", function() C.insert.linewise.above() end, { desc = "Comment: line above" })
+  end
+end
+
+-- Telescope under <leader>f* (no mapping on bare <leader>f)
+do
+  local ok, tb = pcall(require, "telescope.builtin")
+  if ok then
+    map("n", "<leader>ff", tb.find_files,                     { desc = "Find files" })
+    map("n", "<leader>fg", tb.live_grep,                      { desc = "Grep (ripgrep)" })
+    map("n", "<leader>fb", tb.buffers,                        { desc = "Buffers" })
+    map("n", "<leader>fh", tb.help_tags,                      { desc = "Help tags" })
+    map("n", "<leader>fr", tb.resume,                         { desc = "Resume last picker" })
+    map("n", "<leader>fs", tb.lsp_document_symbols,           { desc = "Document symbols" })
+  end
+end
+
+-- LSP under <leader>l* (buffer-local on attach)
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(args)
+    local bufnr = args.buf
+    local bo = { buffer = bufnr, silent = true }
+    -- ensure no stray 'gr*' on this buffer
+    for _, lhs in ipairs({ "gr", "grr", "grt", "gra", "gri", "grn" }) do
+      sdel("n", lhs, { buffer = bufnr })
+    end
+    map("n", "<leader>ld", vim.lsp.buf.definition,      vim.tbl_extend("force", bo, { desc = "LSP: definition" }))
+    map("n", "<leader>lD", vim.lsp.buf.declaration,     vim.tbl_extend("force", bo, { desc = "LSP: declaration" }))
+    map("n", "<leader>li", vim.lsp.buf.implementation,  vim.tbl_extend("force", bo, { desc = "LSP: implementation" }))
+    map("n", "<leader>lt", vim.lsp.buf.type_definition, vim.tbl_extend("force", bo, { desc = "LSP: type def" }))
+    map("n", "<leader>lr", vim.lsp.buf.references,      vim.tbl_extend("force", bo, { desc = "LSP: references" }))
+    map("n", "<leader>la", vim.lsp.buf.code_action,     vim.tbl_extend("force", bo, { desc = "LSP: code action" }))
+    map("n", "<leader>lR", vim.lsp.buf.rename,          vim.tbl_extend("force", bo, { desc = "LSP: rename" }))
+    map("n", "<leader>lk", vim.lsp.buf.hover,           vim.tbl_extend("force", bo, { desc = "LSP: hover" }))
+    map({ "n", "x" }, "<leader>lf", function() vim.lsp.buf.format({ async = true }) end,
+      vim.tbl_extend("force", bo, { desc = "LSP: format" }))
+  end,
+})
+
+-- Optional: Oil on '-'
+pcall(map, "n", "-", "<CMD>Oil<CR>", { desc = "Oil: parent directory" })
+
