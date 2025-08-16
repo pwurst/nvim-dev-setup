@@ -4,6 +4,8 @@ return {
     "rcarriga/nvim-dap-ui",
     "theHamsta/nvim-dap-virtual-text",
     "nvim-neotest/nvim-nio",
+    -- Python adapter
+    "mfussenegger/nvim-dap-python",
   },
   event = "VeryLazy",
   config = function()
@@ -106,6 +108,61 @@ return {
       cfg.args = vim.deepcopy(last_args)
       dap.run(cfg)
     end
+
+    --------------------------------------------------------------------
+    -- Python adapter + launch/attach configurations
+    --------------------------------------------------------------------
+    local function detect_python()
+      for _, p in ipairs({ ".venv/bin/python", "venv/bin/python", "env/bin/python" }) do
+        if vim.fn.executable(p) == 1 then return p end
+      end
+      return "python"
+    end
+
+    pcall(function()
+      local py = detect_python()
+      require("dap-python").setup(py)
+    end)
+
+    dap.configurations.python = {
+      {
+        type = "python",
+        request = "launch",
+        name = "Python: Run current file",
+        program = "${file}",
+        console = "integratedTerminal",
+        justMyCode = false,
+      },
+      {
+        type = "python",
+        request = "launch",
+        name = "Python: Run module",
+        module = "mypkg.cli",       -- ← edit to your package entry
+        args = { "run", "--help" }, -- ← edit as needed
+        cwd = "${workspaceFolder}",
+        console = "integratedTerminal",
+        justMyCode = false,
+      },
+      {
+        type = "python",
+        request = "launch",
+        name = "Python: Pytest file",
+        module = "pytest",
+        args = { "-q", "${file}" },
+        console = "integratedTerminal",
+        justMyCode = false,
+      },
+      {
+        type = "python",
+        request = "attach",
+        name = "Python: Attach (localhost:5678)",
+        connect = { host = "127.0.0.1", port = 5678 },
+        justMyCode = false,
+        -- pathMappings = {
+        --   { localRoot = "/mnt/gpfs/project", remoteRoot = "/gpfs/project" },
+        -- },
+      },
+    }
 
     --------------------------------------------------------------------
     -- Keymaps: stepping, bps, control, UI, args
