@@ -1,23 +1,23 @@
-local conform = require("conform")
+-- ~/.config/nvim/lua/lsp/format.lua
+local conform_ok, conform = pcall(require, "conform")
+if not conform_ok then return end
 
 conform.setup({
-  log_level = vim.log.levels.WARN,     -- reduce noise
+  log_level = vim.log.levels.WARN,
 
-  format_on_save = {
-    lsp_fallback = true,              -- fall back to lsp.buf.format if no formatter
-    timeout_ms   = 1500,
-  },
-
-  condition = function(bufnr)          -- per‑buffer opt‑out via :let b:disable_format_on_save=1
-  return not vim.b[bufnr].disable_format_on_save
+  -- Per-buffer opt-out:
+  --   :let b:disable_format_on_save = 1
+  format_on_save = function(bufnr)
+    if vim.b[bufnr] and vim.b[bufnr].disable_format_on_save then
+      return
+    end
+    return { lsp_fallback = true, timeout_ms = 1500 }
   end,
 
   formatters_by_ft = {
     lua        = { "stylua" },
-
     python     = { "black", "isort", "lsp" },
-    r          = { "styler" },           -- requires R + styler pkg
-
+    r          = { "styler" },
     javascript = { "eslint_d", "prettier" },
     typescript = { "eslint_d", "prettier" },
     json       = { "prettier" },
@@ -27,10 +27,10 @@ conform.setup({
   },
 })
 
--- helper key‑map (normal mode) – <leader>cf formats current buffer on demand
+-- On-demand formatting
 vim.keymap.set(
   "n",
   "<leader>cf",
   function() conform.format({ async = true }) end,
-               { desc = " Format buffer (Conform)" }
+  { desc = " Format buffer (Conform)" }
 )

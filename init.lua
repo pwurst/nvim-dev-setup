@@ -3,6 +3,37 @@
 -- plugins, LSP, completion, debugging and key-maps in deterministic order.
 -- Patrick Wurster · validated 2025-08-04
 
+-- silence depraction warnings
+-- Fix deprecation: provide vim.tbl_isarray for old plugins
+if vim.tbl_islist and not vim.tbl_isarray then
+  vim.tbl_isarray = vim.tbl_islist
+end
+
+-- tbl_add_reverse_lookup is sometimes renamed tbl_add_reverse_map
+if vim.tbl_add_reverse_lookup and not vim.tbl_add_reverse_map then
+  vim.tbl_add_reverse_map = vim.tbl_add_reverse_lookup
+end
+
+-- vim.lsp.buf_get_clients → vim.lsp.get_clients
+if not vim.lsp.get_clients and vim.lsp.buf_get_clients then
+  vim.lsp.get_clients = vim.lsp.buf_get_clients
+end
+
+-- vim.lsp.buf_detach_client → vim.lsp.detach_client
+if not vim.lsp.detach_client and vim.lsp.buf_detach_client then
+  vim.lsp.detach_client = vim.lsp.buf_detach_client
+end
+
+-- sign_define API: :sign-define → vim.fn.sign_define is deprecated in 0.11
+if not vim.fn.sign_define and vim.fn.sign_define then
+  -- noop (already defined), but we could wrap to avoid warnings if needed
+end
+-- Diagnostic config compat (Neovim 0.11+ expects vim.diagnostic.config)
+if vim.lsp.handlers["textDocument/publishDiagnostics"]
+   and not vim.diagnostic.config then
+  vim.diagnostic.config = function() end
+end
+
 ------------------------------------------------------------------------------
 -- 0️⃣  Globals & leader ------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -98,3 +129,17 @@ require("keymaps")
 ------------------------------------------------------------------------------
 -- EOF -----------------------------------------------------------------------
 
+
+
+-- >>> LSP wiring (added by assistant) >>> ----------------------------------
+-- Load diagnostics + format modules first so settings are available.
+pcall(require, "lsp.diagnostic_signs")
+pcall(require, "lsp.format")
+
+local on_attach = require("lsp.on_attach").on_attach
+local caps = (pcall(require, "cmp_nvim_lsp")
+  and require("cmp_nvim_lsp").default_capabilities())
+  or vim.lsp.protocol.make_client_capabilities()
+
+require("lsp.servers").setup(on_attach, caps)
+-- <<< LSP wiring (added by assistant) <<< ----------------------------------
