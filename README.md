@@ -1,41 +1,44 @@
+# Neovim Config (Lazy-based, stable) — Noice removed
 
-# Neovim setup (modern stable, Lazy layout)
-
-This bundle updates your previous config to a stable, minimal, and fast layout:
-- **Plugin manager**: lazy.nvim (stable branch)
-- **LSP**: nvim-lspconfig + mason(-lspconfig)
-- **Completion**: nvim-cmp + LuaSnip
-- **Formatting**: conform.nvim (on save, with LSP fallback)
-- **Linting**: nvim-lint (ruff, shellcheck, etc.)
-- **UI**: tokyonight, lualine, noice, devicons, ibl
-- **Files**: telescope, oil.nvim
-- **Python**: basedpyright + ruff LSP; venv selector optional
-- **Jupyter/Quarto**: molten.nvim, jupytext, quarto.nvim (kept)
+We remove **noice.nvim** to eliminate recurring runtime errors
+(`noice/util/nui.lua: attempt to index local 'size' (a nil value)`) and
+the notify backend warnings. The rest of the stack remains modern and
+quiet: LSP (basedpyright + ruff_lsp), nvim-cmp, Treesitter (fixed
+parser path), Conform (format), nvim-lint (shell diagnostics), Telescope,
+Neo-tree.
 
 ## Install
-
-1. Back up your current `~/.config/nvim` folder.
-2. Extract this archive into `~/.config/nvim` (or copy files over).
-3. Launch Neovim and run `:Lazy sync`.
-4. Once plugins are installed, run `:Mason` to verify tools.
-
-### Suggested external tools (install via pipx/apt/homebrew)
-
-- `basedpyright`, `ruff`, `black`, `isort`, `shellcheck`, `shfmt`, `stylua`, `markdownlint`.
-
-On Debian (with `pipx`):
 ```bash
-pipx install basedpyright ruff black isort
-sudo apt-get install -y shellcheck shfmt
+mv ~/.config/nvim ~/.config/nvim.bak.$(date +%F-%H%M)
+unzip nvim-stable-minimal-ui.zip -d ~/.config
+mv ~/.config/nvim_stable_minimal_ui ~/.config/nvim
 ```
 
-## Notes
+Then inside Neovim:
+```
+:Lazy sync
+:checkhealth
+:checkhealth nvim-treesitter
+```
 
-- `conform.nvim` formats on save. Toggle per-buffer with:
-  ```vim
-  :let b:disable_format_on_save = 1
-  ```
-- `nvim-lint` runs after save/insert-leave.
-- Python LSP: we prefer **basedpyright**; fallback to pyright if not present.
-- Ruff runs both as **LSP** (`ruff`) and CLI linter (`nvim-lint`) to catch quick
-  issues and organize imports/format when configured.
+## Tree-sitter
+Parsers install into:
+```
+:echo stdpath("data") .. "/treesitter-parsers"
+```
+If needed:
+```
+:TSInstall bash regex
+:TSUpdate
+```
+
+## Formatting & Linting
+- **conform.nvim**: on-save format (shfmt, ruff_format/black, stylua, etc.)
+- **nvim-lint**: shellcheck for sh/bash/zsh
+
+## Why remove Noice?
+Noice replaces multiple UIs (cmdline/messages/popups) via nui.nvim and
+optional notify backends. Small API/version drifts across dependencies
+can surface as runtime errors. Removing it restores the native UI and
+stability. You can re-add Noice later once upstream issues are resolved
+or if you want specific UI features.
