@@ -11,6 +11,7 @@ function M.setup(on_attach, capabilities)
 
   -- Superset of desired servers (include legacy ids; we filter below)
   local desired = {
+    "basedpyright", "ruff_lsp",
     "bashls",
     "jedi_language_server",
     "ltex",

@@ -11,7 +11,7 @@ return {
     dependencies = { "williamboman/mason.nvim" },
     config = function()
       require("mason-lspconfig").setup({
-        ensure_installed = { "pyright" }, -- add more as needed
+        ensure_installed = { "basedpyright", "ruff_lsp", "lua_ls", "bashls", "marksman", "texlab" }, -- add more as needed
         automatic_installation = true,
       })
     end,

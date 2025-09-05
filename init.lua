@@ -1,145 +1,72 @@
--- ~/.config/nvim/init.lua ---------------------------------------------------
--- Neovim entry-point: bootstraps plugin manager, then layers options,
--- plugins, LSP, completion, debugging and key-maps in deterministic order.
--- Patrick Wurster · validated 2025-08-04
+-- ====================================================================
+--  Neovim init.lua (modern, Lazy-based; minimal + robust)
+--  - Loads plugin specs from lua/plugins/**
+--  - Avoids duplicate LSP/cmp setup in init.lua
+--  - Optional Python provider pin to a dedicated venv
+-- ====================================================================
 
--- silence depraction warnings
--- Fix deprecation: provide vim.tbl_isarray for old plugins
-if vim.tbl_islist and not vim.tbl_isarray then
-  vim.tbl_isarray = vim.tbl_islist
+-- 1) Leader keys must be set before plugins
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+-- 2) (Optional) Pin Python provider to a stable venv if present
+do
+  local py = vim.fn.expand("~/.virtualenvs/nvim/bin/python")
+  if vim.fn.filereadable(py) == 1 then
+    vim.g.python3_host_prog = py
+  end
 end
 
--- tbl_add_reverse_lookup is sometimes renamed tbl_add_reverse_map
-if vim.tbl_add_reverse_lookup and not vim.tbl_add_reverse_map then
-  vim.tbl_add_reverse_map = vim.tbl_add_reverse_lookup
-end
+-- 3) Slight startup hygiene (Neo-tree prefers netrw disabled)
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
 
--- vim.lsp.buf_get_clients → vim.lsp.get_clients
-if not vim.lsp.get_clients and vim.lsp.buf_get_clients then
-  vim.lsp.get_clients = vim.lsp.buf_get_clients
-end
-
--- vim.lsp.buf_detach_client → vim.lsp.detach_client
-if not vim.lsp.detach_client and vim.lsp.buf_detach_client then
-  vim.lsp.detach_client = vim.lsp.buf_detach_client
-end
-
--- sign_define API: :sign-define → vim.fn.sign_define is deprecated in 0.11
-if not vim.fn.sign_define and vim.fn.sign_define then
-  -- noop (already defined), but we could wrap to avoid warnings if needed
-end
--- Diagnostic config compat (Neovim 0.11+ expects vim.diagnostic.config)
-if vim.lsp.handlers["textDocument/publishDiagnostics"]
-   and not vim.diagnostic.config then
-  vim.diagnostic.config = function() end
-end
-
-------------------------------------------------------------------------------
--- 0️⃣  Globals & leader ------------------------------------------------------
-------------------------------------------------------------------------------
-vim.g.mapleader      = " "
-vim.g.maplocalleader = ","
-
-------------------------------------------------------------------------------
--- 1️⃣  Core Vim options ------------------------------------------------------
-------------------------------------------------------------------------------
-require("opts") -- all `vim.opt` tweaks
-
--- Python providers
-vim.g.python3_host_prog     = vim.fn.expand("~/.config/nvim/.pyenvs/nvim/bin/python3")
-vim.g.loaded_python_provider = 0            -- disable legacy py2 provider
-
--- disable unused providers
-vim.g.loaded_node_provider = 0
-vim.g.loaded_perl_provider = 0
-vim.g.loaded_ruby_provider = 0
-
--- LuaRocks path (if present)
-pcall(require, "luarocks.loader")
-------------------------------------------------------------------------------
--- 2️⃣  Bootstrap Lazy.nvim ---------------------------------------------------
-------------------------------------------------------------------------------
+-- 4) Bootstrap lazy.nvim if missing
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   vim.fn.system({
-    "git", "clone", "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath,
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "--branch=stable",
+    "https://github.com/folke/lazy.nvim.git",
+    lazypath,
   })
 end
 vim.opt.rtp:prepend(lazypath)
-vim.opt.rtp:append(vim.fn.stdpath("data") .. "/parsers")
--- use system clipboard
-vim.opt.clipboard:append("unnamedplus")
 
-------------------------------------------------------------------------------
--- 3️⃣  Plugins (Lazy spec import) -------------------------------------------
-------------------------------------------------------------------------------
+-- 5) Core options / keymaps (guarded requires so missing files won’t error)
+pcall(require, "opts")       -- put your vim.opt settings in lua/opts.lua
+pcall(require, "keymaps")    -- put your keymaps in lua/keymaps.lua
+pcall(require, "autocmds")   -- optional lua/autocmds.lua (yank highlight, etc.)
+
+-- 6) Plugin setup (imports everything under lua/plugins/**)
 require("lazy").setup({
   spec = {
-    { import = "plugins" },    -- loads every file under lua/plugins/*.lua
+    { import = "plugins" },
+    -- You can add more trees like:
+    -- { import = "plugins.extras" },
   },
+  defaults = { lazy = true },          -- lazy-load plugins by default
+  install = { colorscheme = { "tokyonight", "habamax" } },
+  checker = { enabled = false },       -- set true to auto-check plugin updates
   change_detection = { notify = false },
-
-  -- If you want to avoid SSH for public plugins, uncomment:
-  -- git = { url_format = "https://github.com/%s.git" },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip",
+        "matchit",
+        "matchparen",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+        -- netrwPlugin disabled above
+      },
+    },
+  },
 })
 
--- If a legacy lua/plugins.lua file exists, it will shadow the folder.
--- Remove or rename it to avoid "Invalid spec module: `plugins`".
---   mv ~/.config/nvim/lua/plugins.lua ~/.config/nvim/lua/plugins_old.lua
+-- 7) (Optional) Set a colorscheme if installed; ignore if missing
+pcall(vim.cmd, "colorscheme tokyonight")
 
-------------------------------------------------------------------------------
--- 4️⃣  Colorscheme & syntax tweaks ------------------------------------------
-------------------------------------------------------------------------------
--- Tokyonight variant is set in its plugin spec via opts = { style = "moon" }.
-pcall(vim.cmd.colorscheme, "tokyonight")
-
--- If you keep per-language highlight tweaks:
-pcall(require, "highlight.python")
-
--- Harpoon v2 legacy-cache purge (guarded)
-pcall(function()
-  local ok_hp, hp  = pcall(require, "harpoon")
-  local ok_hpd, hd = pcall(require, "harpoon.data")
-  if ok_hp and ok_hpd and hd.__dangerously_clear_data then
-    hd.__dangerously_clear_data(hp.config)
-  end
-end)
-
--- Whitespace UI (uses mini.trailspace); guard in case plugin not loaded yet
-pcall(require, "ui.whitespace")
-
-------------------------------------------------------------------------------
--- 5️⃣  LSP stack -------------------------------------------------------------
-------------------------------------------------------------------------------
--- Keep server setup inside lua/plugins/lsp.lua (Lazy-managed).
--- Icons/diagnostic visuals don’t depend on Mason; safe to require here.
-pcall(require, "lsp.diagnostic_icons")
-
-------------------------------------------------------------------------------
--- 6️⃣  Debugging (DAP) -------------------------------------------------------
--- Python-centric helpers live in lua/dap.lua (auto-loaded by plugin config)
-------------------------------------------------------------------------------
-
-------------------------------------------------------------------------------
--- 7️⃣  Key-maps --------------------------------------------------------------
-------------------------------------------------------------------------------
-require("keymaps")
-
-------------------------------------------------------------------------------
--- EOF -----------------------------------------------------------------------
-
-
-
--- >>> LSP wiring (added by assistant) >>> ----------------------------------
--- Load diagnostics + format modules first so settings are available.
-pcall(require, "lsp.diagnostic_signs")
-pcall(require, "lsp.format")
-
-local on_attach = require("lsp.on_attach").on_attach
-local caps = (pcall(require, "cmp_nvim_lsp")
-  and require("cmp_nvim_lsp").default_capabilities())
-  or vim.lsp.protocol.make_client_capabilities()
-
-require("lsp.servers").setup(on_attach, caps)
--- <<< LSP wiring (added by assistant) <<< ----------------------------------

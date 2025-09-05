@@ -1,56 +1,65 @@
 -- ~/.config/nvim/lua/cmp_setup.lua -----------------------------------------
--- nvim-cmp 0.11 + LuaSnip + (optional) nvim-autopairs
--- Patrick Wurster · revised 2025-08-04
+-- nvim-cmp 0.11 + LuaSnip (guarded) + optional autopairs integration
 
-local cmp     = require("cmp")
-local luasnip = require("luasnip")
+local ok_cmp, cmp = pcall(require, "cmp")
+if not ok_cmp then return end
 
--- optional autopairs --------------------------------------------------------
-local has_pairs, autopairs      = pcall(require, "nvim-autopairs")
-local has_cmp_pairs, cmp_apairs = pcall(require, "nvim-autopairs.completion.cmp")
+-- Guarded LuaSnip; config works even if missing
+local ok_snip, luasnip = pcall(require, "luasnip")
+if ok_snip then
+  local ok_vs, vs_loader = pcall(require, "luasnip.loaders.from_vscode")
+  if ok_vs then vs_loader.lazy_load() end
+end
 
-if has_pairs then
-  autopairs.setup({})
-  if has_cmp_pairs then
-    cmp.event:on("confirm_done", cmp_apairs.on_confirm_done())
-    end
-    end
+-- Optional autopairs integration
+local ok_pairs, npairs = pcall(require, "nvim-autopairs")
+local ok_cmp_pairs, cmp_pairs = pcall(require, "nvim-autopairs.completion.cmp")
+if ok_pairs and ok_cmp_pairs then
+  npairs.setup({})
+  cmp.event:on("confirm_done", cmp_pairs.on_confirm_done())
+end
 
-    -- LuaSnip -------------------------------------------------------------------
-    luasnip.config.setup({ history = true, updateevents = "TextChanged,TextChangedI" })
-    require("luasnip.loaders.from_vscode").lazy_load()
+cmp.setup({
+  preselect = cmp.PreselectMode.Item,
+  completion = { completeopt = "menu,menuone,noinsert" },
 
-    vim.o.completeopt = "menu,menuone,noselect"
+  snippet = {
+    expand = function(args)
+      if ok_snip then luasnip.lsp_expand(args.body) end
+    end,
+  },
 
-    cmp.setup({
-      snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
+  mapping = cmp.mapping.preset.insert({
+    ["<C-Space>"] = cmp.mapping.complete(),
+    ["<C-e>"]     = cmp.mapping.abort(),
+    ["<CR>"]      = cmp.mapping.confirm({ select = true }),
+    ["<C-n>"]     = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Select }),
+    ["<C-p>"]     = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Select }),
 
-              mapping = cmp.mapping.preset.insert({
-                ["<C-Space>"] = cmp.mapping.complete(),
-                                                  ["<CR>"]      = cmp.mapping.confirm({ select = false }),
+    ["<Tab>"] = function(fallback)
+      if cmp.visible() then
+        cmp.select_next_item()
+      elseif ok_snip and luasnip.expand_or_jumpable() then
+        luasnip.expand_or_jump()
+      else
+        fallback()
+      end
+    end,
+    ["<S-Tab>"] = function(fallback)
+      if cmp.visible() then
+        cmp.select_prev_item()
+      elseif ok_snip and luasnip.jumpable(-1) then
+        luasnip.jump(-1)
+      else
+        fallback()
+      end
+    end,
+  }),
 
-                                                  ["<Tab>"] = cmp.mapping(function(fallback)
-                                                  if cmp.visible() then        cmp.select_next_item()
-                                                    elseif luasnip.expand_or_locally_jumpable() then
-                                                      luasnip.expand_or_jump()
-                                                      else fallback() end
-                                                        end, { "i", "s" }),
-
-                                                        ["<S-Tab>"] = cmp.mapping(function(fallback)
-                                                        if cmp.visible() then        cmp.select_prev_item()
-                                                          elseif luasnip.locally_jumpable(-1) then
-                                                            luasnip.jump(-1)
-                                                            else fallback() end
-                                                              end, { "i", "s" }),
-              }),
-
-              sources = cmp.config.sources({
-                { name = "nvim_lsp" },
-                { name = "luasnip"  },
-                { name = "path"     },
-              }, {
-                { name = "buffer"   },
-              }),
-
-              experimental = { ghost_text = true },
-    })
+  sources = cmp.config.sources({
+    { name = "nvim_lsp" },
+    ok_snip and { name = "luasnip" } or nil,
+    { name = "path" },
+    { name = "buffer" },
+  }),
+})
