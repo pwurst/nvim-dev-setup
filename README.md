@@ -1,44 +1,34 @@
-# Neovim Config (Lazy-based, stable) — Noice removed
+# Neovim configuration (updated for **Ruff** native LSP)
 
-We remove **noice.nvim** to eliminate recurring runtime errors
-(`noice/util/nui.lua: attempt to index local 'size' (a nil value)`) and
-the notify backend warnings. The rest of the stack remains modern and
-quiet: LSP (basedpyright + ruff_lsp), nvim-cmp, Treesitter (fixed
-parser path), Conform (format), nvim-lint (shell diagnostics), Telescope,
-Neo-tree.
+This configuration uses **lazy.nvim** (stable) with one Lua file per plugin
+under `lua/plugins/`. It targets Python, Markdown, LaTeX, and HTML.
 
-## Install
-```bash
-mv ~/.config/nvim ~/.config/nvim.bak.$(date +%F-%H%M)
-unzip nvim-stable-minimal-ui.zip -d ~/.config
-mv ~/.config/nvim_stable_minimal_ui ~/.config/nvim
-```
+**Update:** As of early 2025, `ruff-lsp` is deprecated in favor of the native
+**Ruff Language Server** exposed by the `ruff` binary. This config uses
+`lspconfig.ruff` and installs the `ruff` package via Mason.
 
-Then inside Neovim:
-```
-:Lazy sync
-:checkhealth
-:checkhealth nvim-treesitter
-```
+- Line numbers, visible whitespace (including trailing spaces)
+- Python debugging: `nvim-dap` + `debugpy` + `dap-ui` + virtual text
+- Spellcheck on for Markdown/LaTeX; toggle with `<Space>us`
+- Harpoon v2; Neo-tree on the left (`<Space>e`)
+- which-key for leader hints; small motion cheat-sheet `<Space>?n`
+- LSP via Mason: `pyright`, `ruff`, `lua_ls`, `texlab`, `html`, `cssls`, `marksman`
+- Formatting via `conform.nvim`: Black (py), Stylua (lua), mdformat (md), yamlfmt (yaml)
 
-## Tree-sitter
-Parsers install into:
-```
-:echo stdpath("data") .. "/treesitter-parsers"
-```
-If needed:
-```
-:TSInstall bash regex
-:TSUpdate
-```
+### First-time setup
+1. Unzip into `~/.config/nvim`.
+2. Launch `nvim` to bootstrap **lazy** and install plugins.
+3. `:Mason` to confirm tools. (`mason-tool-installer` ensures: ruff, black, stylua, mdformat, debugpy, yamlfmt.)
 
-## Formatting & Linting
-- **conform.nvim**: on-save format (shfmt, ruff_format/black, stylua, etc.)
-- **nvim-lint**: shellcheck for sh/bash/zsh
+### Key bindings
+- `<Space>e` — Neo-tree
+- `<Space>ff` / `<Space>fg` — Telescope files / live grep
+- `<Space>us` — toggle spell
+- **Harpoon:** `<Space>ha` add; `<Space>hh` menu; `<Space>h1..h4` jump
+- **DAP:** `<F9>` breakpoint; `<F5>` continue; `<F10>/<F11>/<F12>` step; `<Space>du` UI
+- `<Space>wk` — which-key; `<Space>?n` — navigation cheat-sheet
 
-## Why remove Noice?
-Noice replaces multiple UIs (cmdline/messages/popups) via nui.nvim and
-optional notify backends. Small API/version drifts across dependencies
-can surface as runtime errors. Removing it restores the native UI and
-stability. You can re-add Noice later once upstream issues are resolved
-or if you want specific UI features.
+### Notes
+- We disable `hover` and `formatting` capabilities from Ruff LSP to let
+  Pyright handle hover and `conform.nvim` handle formatting.
+  Adjust in `lua/plugins/lsp.lua` if you want Ruff to format or show hovers.

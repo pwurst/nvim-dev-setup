@@ -1,23 +1,20 @@
 return {
-  "stevearc/conform.nvim",
-  event = { "BufWritePre" },
-  opts = {
-    notify_on_error = false,
-    format_on_save = function(bufnr)
-      local disable = vim.b[bufnr].disable_format_on_save or vim.g.disable_format_on_save
-      if disable then return end
-      return { lsp_fallback = true, timeout_ms = 2000 }
-    end,
-    formatters_by_ft = {
-      sh = { "shfmt" },
-      bash = { "shfmt" },
-      zsh = { "shfmt" },
-      python = { "ruff_format", "black" },
-      lua = { "stylua" },
-      markdown = { "mdformat" },
-      json = { "jq" },
-      yaml = { "yq" },
+  {
+    "stevearc/conform.nvim",
+    event = { "BufWritePre" },
+    opts = {
+      format_on_save = function(bufnr)
+        local max_size = 500 * 1024
+        local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(bufnr))
+        if ok and stats and stats.size > max_size then return nil end
+        return { timeout_ms = 2000, lsp_fallback = true }
+      end,
+      formatters_by_ft = {
+        lua = { "stylua" },
+        python = { "black" },
+        markdown = { "mdformat" },
+        yaml = { "yamlfmt" },
+      },
     },
   },
-  config = function(_, opts) require("conform").setup(opts) end,
 }
