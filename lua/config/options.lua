@@ -1,28 +1,51 @@
 local opt = vim.opt
 
+-- Line Numbers
 opt.number = true
-opt.relativenumber = false
-opt.signcolumn = "yes"
-opt.termguicolors = true
-opt.cursorline = true
+opt.relativenumber = false -- Set to true if you want relative numbers (great for jumps)
 
-opt.expandtab = true
-opt.shiftwidth = 4
+-- Tabs & Indentation
 opt.tabstop = 4
+opt.shiftwidth = 4
+opt.expandtab = true
 opt.smartindent = true
 
-opt.list = true
-opt.listchars = { tab = "»·", trail = "·", extends = "…", precedes = "…", nbsp = "␣" }
-
+-- Search
 opt.ignorecase = true
 opt.smartcase = true
-opt.incsearch = true
 opt.hlsearch = true
+opt.incsearch = true
 
-opt.clipboard = "unnamedplus"
-opt.scrolloff = 4
-opt.updatetime = 250
-opt.timeoutlen = 400
+-- Visuals
+opt.termguicolors = true
+opt.signcolumn = "yes"
+opt.cursorline = true
+opt.scrolloff = 8 -- Keep 8 lines context when scrolling
+opt.sidescrolloff = 8
+opt.list = true
+opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+opt.fillchars = { eob = " " } -- Hide ~ on empty lines
 
+-- Behavior
+opt.hidden = true
+opt.errorbells = false
+opt.swapfile = false
+opt.backup = false
+opt.undofile = true -- ⚡ KEY: Persistent undo history even after closing nvim
+opt.updatetime = 50 -- Faster completion trigger
+opt.timeoutlen = 300
 opt.splitright = true
 opt.splitbelow = true
+opt.confirm = true -- Confirm to save changes before exiting modified buffer
+
+-- Formatting
+opt.textwidth = 88
+opt.formatoptions = "jcroqlnt" -- tcqj is standard, added 'r' and 'o'
+
+-- Clipboard
+opt.clipboard = "unnamedplus"
+
+-- Neovim 0.10+ specific
+if vim.fn.has("nvim-0.10") == 1 then
+	opt.smoothscroll = true
+end

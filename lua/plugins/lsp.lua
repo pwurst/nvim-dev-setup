@@ -1,96 +1,88 @@
 return {
-  {
-    "neovim/nvim-lspconfig",
-    -- Load early so :checkhealth can see configured servers
-    event = "VeryLazy",
-    dependencies = {
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/nvim-cmp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-      "L3MON4D3/LuaSnip",
-      "saadparwaiz1/cmp_luasnip",
-      "rafamadriz/friendly-snippets",
-    },
-    config = function()
-    local lspconfig = require("lspconfig")
-    local cmp = require("cmp")
-    local cmp_lsp = require("cmp_nvim_lsp")
-    local capabilities = cmp_lsp.default_capabilities()
+	{
+		"neovim/nvim-lspconfig",
+		dependencies = {
+			"williamboman/mason.nvim",
+			"williamboman/mason-lspconfig.nvim",
+			"WhoIsSethDaniel/mason-tool-installer.nvim", -- ⚡ MOVED HERE
+			"saghen/blink.cmp",
+		},
+		config = function()
+			-- 1. Setup Mason
+			require("mason").setup({ ui = { border = "rounded" } })
 
-    -- nvim-cmp
-    cmp.setup({
-      snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
-              mapping = cmp.mapping.preset.insert({
-                ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-                                                  ["<C-f>"] = cmp.mapping.scroll_docs(4),
-                                                  ["<C-Space>"] = cmp.mapping.complete(),
-                                                  ["<CR>"] = cmp.mapping.confirm({ select = true }),
-                                                  ["<Tab>"] = cmp.mapping(function(fb)
-                                                  if cmp.visible() then cmp.select_next_item()
-                                                    elseif require("luasnip").expand_or_jumpable() then require("luasnip").expand_or_jump()
-                                                      else fb() end
-                                                        end, { "i", "s" }),
-                                                        ["<S-Tab>"] = cmp.mapping(function(fb)
-                                                        if cmp.visible() then cmp.select_prev_item()
-                                                          elseif require("luasnip").jumpable(-1) then require("luasnip").jump(-1)
-                                                            else fb() end
-                                                              end, { "i", "s" }),
-              }),
-              sources = {
-                { name = "nvim_lsp" },
-                { name = "buffer" },
-                { name = "path" },
-                { name = "luasnip" },
-              },
-    })
+			-- 2. Capabilities
+			local capabilities = require("blink.cmp").get_lsp_capabilities()
 
-    local on_attach = function(client, bufnr)
-    local bufmap = function(mode, lhs, rhs, desc)
-    vim.keymap.set(mode, lhs, rhs, { noremap = true, silent = true, buffer = bufnr, desc = desc })
-    end
-    bufmap("n", "gd", vim.lsp.buf.definition, "LSP: goto definition")
-    bufmap("n", "gr", vim.lsp.buf.references, "LSP: references")
-    bufmap("n", "gI", vim.lsp.buf.implementation, "LSP: implementation")
-    bufmap("n", "K",  vim.lsp.buf.hover, "LSP: hover")
-    bufmap("n", "<leader>rn", vim.lsp.buf.rename, "LSP: rename")
-    bufmap("n", "<leader>ca", vim.lsp.buf.code_action, "LSP: code action")
-    bufmap("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, "LSP: format")
-    end
+			-- 3. Install Non-LSP Tools (Formatters, Linters, Debuggers)
+			require("mason-tool-installer").setup({
+				ensure_installed = {
+					"ruff", -- Python Linter/Formatter
+					"stylua", -- Lua Formatter
+					"debugpy", -- Python Debugger
+					"markdownlint",
+				},
+				auto_update = true,
+				run_on_start = true,
+			})
 
-    -- Lua
-    lspconfig.lua_ls.setup({
-      capabilities = capabilities,
-      on_attach = on_attach,
-      settings = {
-        Lua = {
-          diagnostics = { globals = { "vim" } },
-          workspace = { checkThirdParty = false },
-        },
-      },
-    })
+			-- 4. Define LSP Servers
+			local servers = {
+				pyright = {
+					settings = {
+						python = {
+							analysis = {
+								typeCheckingMode = "basic",
+								autoSearchPaths = true,
+							},
+						},
+					},
+				},
+				ruff = {
+					init_options = {
+						settings = {},
+					},
+				},
+				lua_ls = {
+					settings = {
+						Lua = {
+							workspace = { checkThirdParty = false },
+							telemetry = { enable = false },
+							diagnostics = { globals = { "vim" } },
+						},
+					},
+				},
+				bashls = {},
+				jsonls = {},
+				yamlls = {},
+				marksman = {},
+			}
 
-    -- Python: Pyright (types)
-    lspconfig.pyright.setup({ capabilities = capabilities, on_attach = on_attach })
+			-- 5. Setup Mason-LSPConfig
+			require("mason-lspconfig").setup({
+				ensure_installed = vim.tbl_keys(servers),
+				automatic_installation = false,
+				handlers = {
+					function(server_name)
+						local opts = servers[server_name] or {}
+						opts.capabilities = capabilities
+						require("lspconfig")[server_name].setup(opts)
+					end,
+				},
+			})
 
-    -- Python: Ruff (lint/code actions), no hover/format to avoid dupes with Pyright/Black
-    lspconfig.ruff.setup({
-      capabilities = capabilities,
-      on_attach = function(client, bufnr)
-      client.server_capabilities.hoverProvider = false
-      client.server_capabilities.documentFormattingProvider = false
-      client.server_capabilities.documentRangeFormattingProvider = false
-      on_attach(client, bufnr)
-      end,
-    })
-
-    -- LaTeX, Markdown, Web
-    lspconfig.texlab.setup({ capabilities = capabilities, on_attach = on_attach })
-    lspconfig.marksman.setup({ capabilities = capabilities, on_attach = on_attach })
-    lspconfig.html.setup({ capabilities = capabilities, on_attach = on_attach })
-    lspconfig.cssls.setup({ capabilities = capabilities, on_attach = on_attach })
-    end,
-  },
+			-- 6. UI Polish
+			vim.diagnostic.config({
+				float = { border = "rounded" },
+				signs = {
+					text = {
+						[vim.diagnostic.severity.ERROR] = "✘",
+						[vim.diagnostic.severity.WARN] = "▲",
+						[vim.diagnostic.severity.HINT] = "⚑",
+						[vim.diagnostic.severity.INFO] = "»",
+					},
+				},
+			})
+		end,
+	},
 }

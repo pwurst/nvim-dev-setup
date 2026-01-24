@@ -1,35 +1,35 @@
--- Set <space> as leader BEFORE anything else
+-- Set <space> as leader key
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
-local home_ts = vim.fn.expand("~/.cargo/bin")
-if not string.find(vim.env.PATH or "", home_ts, 1, true) then
-	vim.env.PATH = home_ts .. ":" .. (vim.env.PATH or "")
-end
-
--- Bootstrap lazy.nvim
+-- Bootstap Lazy
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-	vim.fn.system({
-		"git",
-		"clone",
-		"--filter=blob:none",
-		"https://github.com/folke/lazy.nvim.git",
-		"--branch=stable",
-		lazypath,
-	})
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+	local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+	local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+	if vim.v.shell_error ~= 0 then
+		vim.api.nvim_echo({
+			{ "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+			{ out, "WarningMsg" },
+			{ "\nPress any key to exit..." },
+		}, true, {})
+		vim.fn.getchar()
+		os.exit(1)
+	end
 end
 vim.opt.rtp:prepend(lazypath)
 
--- Core settings, keymaps, autocmds
+-- Load Config
 require("config.options")
 require("config.keymaps")
 require("config.autocmds")
-require("config.providers")
+require("config.providers") -- Optional
 
--- Load plugins from lua/plugins/* and force HTTPS for GitHub
+-- Load Plugins
 require("lazy").setup({
-	spec = { import = "plugins" },
+	spec = {
+		{ import = "plugins" },
+	},
+	ui = { border = "rounded" },
 	change_detection = { notify = false },
-	git = { url_format = "https://github.com/%s.git" },
 })
