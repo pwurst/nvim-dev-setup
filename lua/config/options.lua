@@ -27,7 +27,6 @@ opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 opt.fillchars = { eob = " " } -- Hide ~ on empty lines
 
 -- Behavior
-opt.hidden = true
 opt.errorbells = false
 opt.swapfile = false
 opt.backup = false
@@ -39,8 +38,8 @@ opt.splitbelow = true
 opt.confirm = true -- Confirm to save changes before exiting modified buffer
 
 -- Formatting
-opt.textwidth = 88
-opt.formatoptions = "jcroqlnt" -- tcqj is standard, added 'r' and 'o'
+opt.textwidth = 80
+opt.formatoptions = "jcroqlnt" -- tcqj is standard, added 'r', 'o', and 't' for auto-wrap at textwidth
 
 -- Clipboard
 opt.clipboard = "unnamedplus"

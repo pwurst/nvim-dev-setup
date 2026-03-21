@@ -9,6 +9,11 @@ return {
 				timeout_ms = 500,
 				lsp_fallback = true,
 			},
+			formatters = {
+				ruff_format = {
+					prepend_args = { "--line-length", "79" },
+				},
+			},
 			formatters_by_ft = {
 				lua = { "stylua" },
 				-- Use Ruff for everything. It handles imports (isort) and formatting (black)

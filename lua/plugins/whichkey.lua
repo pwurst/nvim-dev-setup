@@ -9,11 +9,17 @@ return {
 			{ "<leader>d", group = "Debug" },
 			{ "<leader>f", group = "Find" },
 			{ "<leader>g", group = "Git" },
+			{ "<leader>gh", group = "Hunks" },
+			{ "<leader>h", group = "Harpoon" },
+			{ "<leader>j", group = "Jupyter" },
 			{ "<leader>l", group = "Lazy" },
 			{ "<leader>q", group = "Quit/Session" },
 			{ "<leader>s", group = "Search" },
+			{ "<leader>t", group = "Test" },
 			{ "<leader>u", group = "UI" },
+			{ "<leader>v", group = "Venv" },
 			{ "<leader>w", group = "Window" },
+			{ "<leader>x", group = "Diagnostics" },
 			-- Navigation Cheatsheet trigger
 			{
 				"<leader>?",

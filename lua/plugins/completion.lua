@@ -10,7 +10,10 @@ return {
 			-- 'default' for mappings similar to built-in completion
 			-- 'super-tab' for tab-based completion (like VSCode)
 			-- 'enter' for enter-based selection
-			keymap = { preset = "default" },
+			keymap = {
+				preset = "super-tab",
+				["<Esc>"] = { "hide", "fallback" },
+			},
 
 			appearance = {
 				use_nvim_cmp_as_default = true,

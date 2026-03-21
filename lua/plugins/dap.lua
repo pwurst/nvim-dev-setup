@@ -5,6 +5,7 @@ return {
 			"rcarriga/nvim-dap-ui",
 			"nvim-neotest/nvim-nio", -- Required for DAP UI
 			"mfussenegger/nvim-dap-python", -- Python Adapter
+			"theHamsta/nvim-dap-virtual-text", -- Inline variable values
 		},
 		keys = {
 			{
@@ -53,6 +54,9 @@ return {
 		config = function()
 			local dap = require("dap")
 			local dapui = require("dapui")
+
+			-- Show variable values as virtual text while debugging
+			require("nvim-dap-virtual-text").setup()
 
 			-- Setup UI
 			dapui.setup()

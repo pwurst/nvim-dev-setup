@@ -21,6 +21,7 @@ return {
 					"stylua", -- Lua Formatter
 					"debugpy", -- Python Debugger
 					"markdownlint",
+					"latexindent", -- LaTeX Formatter
 				},
 				auto_update = true,
 				run_on_start = true,
@@ -56,6 +57,7 @@ return {
 				jsonls = {},
 				yamlls = {},
 				marksman = {},
+				texlab = {}, -- LaTeX LSP (completion, diagnostics, build)
 			}
 
 			-- 5. Setup Mason-LSPConfig
