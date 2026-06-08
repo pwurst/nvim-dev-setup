@@ -17,11 +17,17 @@ return {
 			-- 3. Install Non-LSP Tools (Formatters, Linters, Debuggers)
 			require("mason-tool-installer").setup({
 				ensure_installed = {
-					"ruff", -- Python Linter/Formatter
-					"stylua", -- Lua Formatter
-					"debugpy", -- Python Debugger
+					-- Python
+					"ruff",         -- linter + formatter
+					"docformatter", -- PEP 257 docstring formatting (pyupgrade lives in nvim venv)
+					"debugpy",      -- debugger
+					-- Lua
+					"stylua",
+					-- Markdown
 					"markdownlint",
-					"latexindent", -- LaTeX Formatter
+					-- LaTeX
+					"latexindent",
+					"bibtex-tidy", -- .bib formatter
 				},
 				auto_update = true,
 				run_on_start = true,
@@ -29,12 +35,18 @@ return {
 
 			-- 4. Define LSP Servers
 			local servers = {
-				pyright = {
+				basedpyright = {
 					settings = {
-						python = {
+						basedpyright = {
 							analysis = {
-								typeCheckingMode = "basic",
+								typeCheckingMode = "basic",      -- "off" | "basic" | "standard" | "strict"
 								autoSearchPaths = true,
+								useLibraryCodeForTypes = true,   -- infer types from installed libs
+								diagnosticMode = "openFilesOnly",
+								-- Silence diagnostics ruff already covers (avoids duplicates)
+								reportUnusedImport = "none",     -- ruff F401
+								reportUnusedVariable = "none",   -- ruff F841
+								reportUnusedCallResult = "none", -- noisy for argparse/side-effect calls
 							},
 						},
 					},

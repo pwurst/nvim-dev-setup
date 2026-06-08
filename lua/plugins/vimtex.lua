@@ -18,6 +18,13 @@ return {
 			},
 		}
 
+		-- Don't auto-open quickfix on warnings (errors still open it)
+		vim.g.vimtex_quickfix_open_on_warning = 0
+		-- Enable code folding for sections/environments
+		vim.g.vimtex_fold_enabled = 1
+		-- Auto-close braces in citation/ref completions
+		vim.g.vimtex_complete_close_braces = 1
+
 		-- Cleaner concealment (math, bold, italic rendered in-buffer)
 		vim.g.vimtex_syntax_conceal = {
 			accents = 1,

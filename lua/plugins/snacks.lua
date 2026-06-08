@@ -19,6 +19,7 @@ return {
 		scroll = { enabled = false }, -- disabled: vim smoothscroll is already on
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
+		image = { enabled = true }, -- Ghostty + kitty protocol detected; ImageMagick + gs present
 	},
 	keys = {
 		{

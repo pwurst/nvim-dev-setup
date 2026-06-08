@@ -44,7 +44,5 @@ opt.formatoptions = "jcroqlnt" -- tcqj is standard, added 'r', 'o', and 't' for 
 -- Clipboard
 opt.clipboard = "unnamedplus"
 
--- Neovim 0.10+ specific
-if vim.fn.has("nvim-0.10") == 1 then
-	opt.smoothscroll = true
-end
+opt.smoothscroll = true
+opt.jumpoptions = "view" -- Ctrl+O/I restores scroll position when jumping

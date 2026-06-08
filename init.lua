@@ -32,4 +32,7 @@ require("lazy").setup({
 	},
 	ui = { border = "rounded" },
 	change_detection = { notify = false },
+	git = { url_format = "https://github.com/%s.git" },
 })
+
+vim.api.nvim_set_hl(0, "DiagnosticUnderlineWarn", { underline = false })
