@@ -1,10 +1,13 @@
 return {
 	"linux-cultist/venv-selector.nvim",
 	branch = "regexp",
-	dependencies = { "neovim/nvim-lspconfig", "nvim-telescope/telescope.nvim" },
+	dependencies = { "neovim/nvim-lspconfig", "folke/snacks.nvim" },
 	ft = "python",
 	opts = {
 		settings = {
+			options = {
+				picker = "snacks", -- telescope removed; use snacks.picker
+			},
 			search = {
 				venvs = {
 					-- Search common venv locations

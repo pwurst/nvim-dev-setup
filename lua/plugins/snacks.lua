@@ -92,5 +92,41 @@ return {
 			end,
 			desc = "Diagnostics",
 		},
+		-- Ported from telescope (removed; snacks.picker covers everything)
+		{
+			"<leader>ff",
+			function()
+				Snacks.picker.files()
+			end,
+			desc = "Find Files",
+		},
+		{
+			"<leader>fr",
+			function()
+				Snacks.picker.recent()
+			end,
+			desc = "Recent",
+		},
+		{
+			"<leader>gc",
+			function()
+				Snacks.picker.git_log()
+			end,
+			desc = "Commits",
+		},
+		{
+			"<leader>gs",
+			function()
+				Snacks.picker.git_status()
+			end,
+			desc = "Status",
+		},
+		{
+			"<leader>sr",
+			function()
+				Snacks.picker.resume()
+			end,
+			desc = "Resume Search",
+		},
 	},
 }
