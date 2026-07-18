@@ -6,16 +6,36 @@ Jupyter notebooks, and AI-assisted coding. Managed by
 
 ---
 
+## Version Requirements
+
+**Neovim >= 0.11 is required — this config will not work on older releases.**
+Currently tested against v0.13.0-dev (nightly). The hard dependencies on 0.11+:
+
+- `vim.lsp.config()` / `vim.lsp.enable()` — how all LSP servers are registered
+  (`lua/plugins/lsp.lua`)
+- `vim.diagnostic.jump()` — the `[d` / `]d` diagnostic keymaps
+- mason-lspconfig v2 (`automatic_enable`) — drops support for < 0.11
+- nvim-treesitter `main` branch — the rewritten API used here requires 0.11+,
+  plus the `tree-sitter` CLI >= 0.25 and a C compiler to build parsers
+
+If you must run an older Neovim, check out a commit before the
+`vim.lsp.config` / treesitter-main migrations (July 2026).
+
+---
+
 ## Requirements
 
 | Tool | Purpose |
 |------|---------|
-| Neovim >= 0.10 | Core |
+| Neovim >= 0.11 | Core (see [Version Requirements](#version-requirements)) |
 | Git | Plugin management |
 | A [Nerd Font](https://www.nerdfonts.com/) | Icons (run `install_nerdfonts.sh`) |
+| `tree-sitter` CLI >= 0.25 + C compiler | Building treesitter parsers (main branch) |
+| `ripgrep` | Grep picker and grug-far search & replace |
+| `fd` (`fdfind` on Debian) | venv-selector search, faster file pickers |
 | `npm` / `npx` | Markdown browser preview build step |
 | `zathura` | PDF viewer for LaTeX (`sudo apt install zathura`) |
-| `make` | Building telescope-fzf-native |
+| `lazygit` | Git UI via `<leader>gg` (optional) |
 | Python + `pip` | Jupyter/molten support (see [Jupyter setup](#jupyter--molten)) |
 
 ---
@@ -62,7 +82,7 @@ Statusline showing mode, git branch, diff stats, diagnostics, relative file
 path, filetype, and cursor position.
 
 #### [nvim-web-devicons](https://github.com/nvim-tree/nvim-web-devicons)
-File type icons used throughout the UI (neo-tree, lualine, telescope, etc.).
+File type icons used throughout the UI (lualine, pickers, oil, etc.).
 
 #### [snacks.nvim](https://github.com/folke/snacks.nvim) — UI modules
 A suite of small UI enhancements loaded as a single plugin:
@@ -79,6 +99,9 @@ A suite of small UI enhancements loaded as a single plugin:
 | `quickfile` | Fast file opening before plugins finish loading |
 | `terminal` | Terminal backend (used by Claude Code) |
 | `picker` | Fuzzy picker (see [Navigation](#navigation)) |
+| `explorer` | File explorer sidebar (`<leader>e`) |
+| `image` | Inline image rendering (Kitty graphics protocol) |
+| `lazygit` | Lazygit in a floating terminal (see [Git](#git)) |
 
 ```
 <leader>un    Dismiss all notifications
@@ -89,7 +112,9 @@ A suite of small UI enhancements loaded as a single plugin:
 ### Navigation
 
 #### [snacks.nvim — Picker](https://github.com/folke/snacks.nvim)
-Primary fuzzy finder for files, buffers, and text.
+The fuzzy finder for everything: files, buffers, text, git, LSP symbols.
+Also provides `vim.ui.select`, so plugin prompts (venv-selector, code
+actions) use the same UI.
 
 ```
 <leader><space>   Smart find files (recent + project files)
@@ -97,18 +122,15 @@ Primary fuzzy finder for files, buffers, and text.
 <leader>/         Live grep across project
 <leader>:         Command history
 <leader>e         Toggle file explorer
-```
-
-#### [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
-Used for git operations and search resume (snacks handles everything else).
-
-```
 <leader>ff        Find files
 <leader>fr        Recent files
 <leader>gc        Git commits
 <leader>gs        Git status
 <leader>sr        Resume last search
 <leader>st        Search TODOs (via todo-comments)
+<leader>ss        LSP symbols in current buffer
+<leader>sd        Diagnostics
+<leader>su        Undo history
 ```
 
 #### [harpoon](https://github.com/ThePrimeagen/harpoon) (v2)
@@ -133,14 +155,6 @@ R                 Treesitter search (visual / operator-pending)
 ```
 
 Example: `ysS"` surround the treesitter node you flash to with quotes.
-
-#### [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim)
-File tree sidebar. Auto-follows the current file and watches for filesystem
-changes.
-
-```
-<leader>e         Toggle neo-tree
-```
 
 #### [oil.nvim](https://github.com/stevearc/oil.nvim)
 Edit the filesystem like a buffer — rename, move, and delete files by editing
@@ -171,7 +185,10 @@ blink.cmp so completion and bracket pairing don't conflict.
 
 #### [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
 Syntax-aware highlighting and indentation for all supported languages. Also
-powers flash's treesitter jump and the textobjects below.
+powers flash's treesitter jump and the textobjects below. Uses the rewritten
+`main` branch (requires Neovim 0.11+ and the `tree-sitter` CLI): parsers are
+installed explicitly and highlighting is enabled per-buffer via a FileType
+autocmd — see `lua/plugins/treesitter.lua`.
 
 **Textobjects** — select or operate on code structures:
 ```
@@ -188,11 +205,12 @@ Example: `daf` deletes an entire function including its signature.
 ### LSP & Completion
 
 #### [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) + [mason.nvim](https://github.com/williamboman/mason.nvim)
-Language servers installed and managed automatically via Mason:
+Language servers installed by Mason and registered through the native
+`vim.lsp.config()` API (Neovim 0.11+):
 
 | Server | Language |
 |--------|---------|
-| `pyright` | Python (type checking) |
+| `basedpyright` | Python (type checking) |
 | `ruff` | Python (linting, import sorting) |
 | `lua_ls` | Lua |
 | `bashls` | Bash |
@@ -215,23 +233,29 @@ Fast completion engine with LSP, buffer, path, and snippet sources. Signature
 help shows function argument hints automatically while typing.
 
 ```
-<Tab>             Accept highlighted completion item
-<S-Tab>           Select previous item
-<Esc>             Close completion popup
+<Tab>             Accept highlighted completion item / jump to next snippet field
+<S-Tab>           Jump to previous snippet field
+<Esc>             Leave insert mode (menu closes automatically)
 ```
+
+#### [lazydev.nvim](https://github.com/folke/lazydev.nvim)
+Full Neovim Lua API type definitions and completion when editing this config.
+Registered as a high-priority blink.cmp source for `.lua` files.
 
 #### [conform.nvim](https://github.com/stevearc/conform.nvim)
 Formats automatically on save using the right tool per filetype:
 
 | Filetype | Formatter |
 |----------|----------|
-| Python | `ruff_fix` → `ruff_format` (79 char line length) |
+| Python | `pyupgrade` → `docformatter` → `ruff_fix` → `ruff_format` |
 | Lua | `stylua` |
-| JS / JSON / Markdown | `prettier` |
+| JS / JSON / Markdown | `prettierd` (installed via Mason) |
 | YAML | `yamlfmt` |
+| LaTeX / BibTeX | `latexindent` / `bibtex-tidy` |
 
 Python formatting automatically wraps long lines and adds parentheses for line
-continuation — no manual action needed.
+continuation — no manual action needed. Line length is 52 by design, sized for
+a half-screen vertical split.
 
 ---
 
@@ -252,12 +276,30 @@ Git diff signs in the gutter, hunk-level staging, and inline blame.
 <leader>gd        Diff current file against HEAD
 ```
 
+#### [diffview.nvim](https://github.com/sindrets/diffview.nvim)
+Side-by-side diffs, file history, and a merge-conflict view — complements
+gitsigns, which works at hunk level.
+
+```
+<leader>gv        Diffview: working tree vs HEAD
+<leader>gf        File history for current file
+<leader>gF        File history for whole repo
+```
+
+#### snacks.nvim — Lazygit
+Opens [lazygit](https://github.com/jesseduffield/lazygit) in a floating
+terminal (requires the `lazygit` binary).
+
+```
+<leader>gg        Open lazygit
+```
+
 ---
 
 ### Python
 
 #### [venv-selector.nvim](https://github.com/linux-cultist/venv-selector.nvim)
-Fuzzy-pick a virtual environment. Automatically notifies pyright and ruff so
+Fuzzy-pick a virtual environment. Automatically notifies basedpyright and ruff so
 type checking and linting use the correct interpreter immediately.
 
 ```
@@ -395,7 +437,7 @@ accepts or rejects AI-generated diffs without leaving the editor.
 <leader>am        Select Claude model
 <leader>ab        Add current buffer to Claude context
 <leader>as        Send visual selection to Claude
-<leader>as        Add file from tree  (when in neo-tree / oil buffer)
+<leader>as        Add file from tree  (when in an oil buffer)
 <leader>aa        Accept Claude-generated diff
 <leader>ad        Deny Claude-generated diff
 ```
@@ -403,6 +445,24 @@ accepts or rejects AI-generated diffs without leaving the editor.
 ---
 
 ### Productivity
+
+#### [persistence.nvim](https://github.com/folke/persistence.nvim)
+Saves the session (buffers, splits, window layout) per directory and restores
+it on demand — the dashboard's "Restore Session" entry uses it too.
+
+```
+<leader>qs        Restore session for current directory
+<leader>ql        Restore last session
+<leader>qd        Don't save the current session on exit
+```
+
+#### [grug-far.nvim](https://github.com/MagicDuck/grug-far.nvim)
+Project-wide find & replace with live ripgrep-powered preview. Edit the
+search/replace fields like a normal buffer, then apply all or per-file.
+
+```
+<leader>sR        Open search & replace (normal or visual mode)
+```
 
 #### [which-key.nvim](https://github.com/folke/which-key.nvim)
 Shows a keybinding popup after a short pause when you press the leader key.
@@ -415,7 +475,7 @@ Uses the helix preset (compact, flat layout).
 
 #### [todo-comments.nvim](https://github.com/folke/todo-comments.nvim)
 Highlights `TODO`, `FIXME`, `HACK`, `NOTE`, `WARN`, and `PERF` comments with
-distinct colours and makes them searchable via Telescope.
+distinct colours and makes them searchable via the snacks grep picker.
 
 ```
 ]t / [t           Jump to next / prev TODO comment
@@ -458,7 +518,8 @@ default quickfix window with a navigable, readable list.
 <A-j> / <A-k>      Move line or selection up / down
 < / >              Indent / unindent (stays in visual mode)
 j / k              Navigate wrapped lines naturally
-<Esc>              Clear search highlights
+<Esc>              Clear search highlights (normal) / leave insert mode
+<Esc><Esc>         Terminal mode -> normal mode
 ```
 
 ### UI Toggles
