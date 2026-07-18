@@ -25,6 +25,8 @@ return {
 					"stylua",
 					-- Markdown
 					"markdownlint",
+					-- JS/JSON/Markdown formatting (conform lists it; must be installed)
+					"prettierd",
 					-- LaTeX
 					"latexindent",
 					"bibtex-tidy", -- .bib formatter
@@ -72,20 +74,21 @@ return {
 				texlab = {}, -- LaTeX LSP (completion, diagnostics, build)
 			}
 
-			-- 5. Setup Mason-LSPConfig
+			-- 5. Register server configs via the native API (replaces the
+			-- deprecated require("lspconfig")[name].setup() pattern;
+			-- still extends nvim-lspconfig's lsp/*.lua defaults)
+			for server, opts in pairs(servers) do
+				opts.capabilities = capabilities
+				vim.lsp.config(server, opts)
+			end
+
+			-- 6. Mason-LSPConfig v2 installs the servers and enables them
+			-- (automatic_enable calls vim.lsp.enable() for each)
 			require("mason-lspconfig").setup({
 				ensure_installed = vim.tbl_keys(servers),
-				automatic_installation = false,
-				handlers = {
-					function(server_name)
-						local opts = servers[server_name] or {}
-						opts.capabilities = capabilities
-						require("lspconfig")[server_name].setup(opts)
-					end,
-				},
 			})
 
-			-- 6. UI Polish
+			-- 7. UI Polish
 			vim.diagnostic.config({
 				float = { border = "rounded" },
 				signs = {

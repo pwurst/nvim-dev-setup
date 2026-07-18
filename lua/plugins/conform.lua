@@ -6,11 +6,13 @@ return {
 		opts = {
 			notify_on_error = false,
 			format_on_save = {
-				timeout_ms = 500,
+				-- Python runs a 4-formatter chain; 500ms was too tight on larger files
+				timeout_ms = 2000,
 				lsp_format = "fallback", -- replaces deprecated lsp_fallback = true
 			},
 			formatters = {
 				ruff_format = {
+					-- 52 is intentional: half-screen split workflow
 					prepend_args = { "--line-length", "52" },
 				},
 				ruff_fix = {

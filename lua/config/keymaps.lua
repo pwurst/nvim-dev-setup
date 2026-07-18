@@ -11,6 +11,9 @@ map({ "n", "x" }, "k", "gk", opts)
 -- Clear Search Highlights (Esc)
 map("n", "<Esc>", "<cmd>nohlsearch<CR>", opts)
 
+-- Terminal: double-Esc to normal mode (single Esc still reaches the terminal app)
+map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+
 -- Window Navigation (Ctrl + hjkl)
 -- ⚡ KEY: Move between splits instantly
 map("n", "<C-h>", "<C-w>h", { desc = "Go to left window" })
@@ -42,9 +45,13 @@ map("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" })
 map("v", "<", "<gv")
 map("v", ">", ">gv")
 
--- Diagnostics
-map("n", "[d", vim.diagnostic.goto_prev, { desc = "Prev Diagnostic" })
-map("n", "]d", vim.diagnostic.goto_next, { desc = "Next Diagnostic" })
+-- Diagnostics (vim.diagnostic.jump replaces deprecated goto_prev/goto_next)
+map("n", "[d", function()
+	vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = "Prev Diagnostic" })
+map("n", "]d", function()
+	vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = "Next Diagnostic" })
 map("n", "<leader>cd", vim.diagnostic.open_float, { desc = "Line Diagnostics" })
 
 -- Toggle Options

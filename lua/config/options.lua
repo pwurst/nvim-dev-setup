@@ -39,7 +39,7 @@ opt.confirm = true -- Confirm to save changes before exiting modified buffer
 
 -- Formatting
 opt.textwidth = 80
-opt.formatoptions = "jcroqlnt" -- tcqj is standard, added 'r', 'o', and 't' for auto-wrap at textwidth
+opt.formatoptions = "jcroqln" -- dropped 't': auto-wrap comments only, never code lines
 
 -- Clipboard
 opt.clipboard = "unnamedplus"

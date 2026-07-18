@@ -15,8 +15,6 @@ return {
 				-- Tab immediately accepts the highlighted suggestion (or falls through to snippet jump / normal Tab)
 				["<Tab>"] = { "accept", "snippet_forward", "fallback" },
 				["<S-Tab>"] = { "snippet_backward", "fallback" },
-				-- Esc dismisses completion popup but stays in insert mode (no "fallback" = no mode change)
-				["<Esc>"] = { "hide" },
 			},
 
 			appearance = {
